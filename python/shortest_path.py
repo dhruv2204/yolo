@@ -1,12 +1,11 @@
-import psycopg2
+#function to get shortest path nodes
 import networkx as nx
+import psycopg2
 from config import config
 
-G = nx.Graph()
-
-def get_juniors():
-    """ query data from the employees table """
+def get_path(node1, node2):
     conn = None
+    G = nx.Graph()
     try:
         params = config()
         conn = psycopg2.connect(**params)
@@ -31,6 +30,4 @@ def get_juniors():
         if conn is not None:
             conn.close()
 
-if __name__ == '__main__':
-    get_juniors()
-print(nx.dijkstra_path_length(G ,1, 7, "distance"))
+    return nx.dijkstra_path(G ,node1, node2)

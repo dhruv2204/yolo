@@ -1,6 +1,6 @@
 import psycopg2
-import networkx as nx
 from config import config
+from shortest_path import get_path
 
 def get_juniors(eid):
     """ query data from the employees table """
@@ -52,10 +52,7 @@ def get_senior_tree(eid):
         if conn is not None:
             conn.close()
 
-
-g = nx.Graph()
-g.add_edge('a', 'b', distance=0.3)
-g.add_edge('a', 'c', distance=0.7)
-print(nx.dijkstra_path_length(g, 'b', 'c', 'distance'))
 if __name__ == '__main__':
     get_juniors(3)
+    get_senior_tree(11)
+    print(get_path(1, 20))
