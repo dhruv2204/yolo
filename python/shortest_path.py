@@ -20,7 +20,7 @@ def get_path(node1, node2):
         #     row=cur.fetchone()
 
         while row is not None:
-            G.add_edge(row[-3],row[0], distance=row[-1])
+            G.add_edge(row[-3],row[0], value=row[-1])
             row = cur.fetchone()
  
         cur.close()
@@ -30,4 +30,4 @@ def get_path(node1, node2):
         if conn is not None:
             conn.close()
 
-    return nx.dijkstra_path(G ,node1, node2)
+    return nx.dijkstra_path(G ,node1, node2, "value")
