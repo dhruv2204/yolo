@@ -6,6 +6,7 @@ from config import config
 from shortest_path import get_path
 from flask import Flask, request
 from flask_restful import Resource, Api
+from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
 api = Api(app)
@@ -17,23 +18,20 @@ class Juniors(Resource):
         try:
             params = config()
             conn = psycopg2.connect(**params)
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute("WITH RECURSIVE juniors AS (SELECT e_id, m_id, name, value_in_company FROM "+
                         "employees WHERE e_id = %s UNION SELECT e.e_id, e.m_id, e.name, e.value_in_company "+
                         "FROM employees e INNER JOIN juniors s ON s.e_id = e.m_id ) "+
-                        "SELECT cast(json_agg(res) as text) FROM juniors res;", [eid])
+                        "SELECT * FROM juniors;", [eid])
 
-            row = cur.fetchone()
-            while row is not None:
-                return row
-                row = cur.fetchone()
-    
+            return cur.fetchall()
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
             if conn is not None:
                 conn.close()
+                
 class Senior_Tree(Resource):
     def get(self, eid):
         """ query data from the employees table """
@@ -41,22 +39,22 @@ class Senior_Tree(Resource):
         try:
             params = config()
             conn = psycopg2.connect(**params)
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute("WITH RECURSIVE senior AS (SELECT e_id, m_id, name, value_in_company FROM "+
                         "employees WHERE e_id = (SELECT m_id from employees WHERE e_id= %s) UNION SELECT e.e_id, e.m_id, e.name, e.value_in_company "+
                         "FROM employees e INNER JOIN senior s ON s.e_id = e.m_id ) "+
-                        "SELECT cast(json_agg(res) as text) FROM senior res;", [eid])
+                        "SELECT * FROM senior;", [eid])
             print("The number of employees under senior of e_id "+str(eid)+": ", cur.rowcount)
-            row = cur.fetchall()
     
+            #row = cur.fetchall()
             # while row is not None:
-            return row[0][0]
+            return cur.fetchall()
             #row = cur.fetchone()
     
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
-        finally:
+        finally:    
             if conn is not None:
                 conn.close()
 
@@ -84,34 +82,37 @@ class Shortest_Path(Resource):
         try:
             params = config()
             conn = psycopg2.connect(**params)
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute("WITH RECURSIVE juniors AS (SELECT e_id, m_id, name, value_in_company FROM "+
                         "employees UNION SELECT e.e_id, e.m_id, e.name, e.value_in_company "+
                         "FROM employees e INNER JOIN juniors s ON s.e_id = e.m_id ) "+
                         "SELECT * FROM juniors;")
-            row = cur.fetchone()
+            #row = cur.fetchone()
             # while row is not None:
             #     G.add_node(row[0])
             #     row=cur.fetchone()
-
+            #return cur.fetchall()
+            row = cur.fetchone()
             while row is not None:
-                G.add_edge(row[-3],row[0], value=row[-1])
+                G.add_edge(row['e_id'],row['m_id'], value=row["value_in_company"])
+                #print(row['m_id'])
                 row = cur.fetchone()
-    
+ 
+            return nx.dijkstra_path(G ,node1, node2, "value")
+            
             cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
         finally:
             if conn is not None:
                 conn.close()
-        x=node1
-        print(x)
-        return nx.dijkstra_path(G ,x, 20, "value")
+        #x=node1
+        #print(x)
 
 api.add_resource(Juniors, '/junior/<eid>')
 api.add_resource(Senior_Tree, '/seniortree/<eid>')
 #api.add_resource(Insert_Json, '/employees/<eid>')
-api.add_resource(Shortest_Path,'/shortestpath/<node1>/<node2>')
+api.add_resource(Shortest_Path,'/shortestpath/<int:node1>/<int:node2>')
 
 if __name__ == '__main__':
      app.run(port='5002')
