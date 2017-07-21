@@ -6,9 +6,11 @@ from config import config
 from shortest_path import get_path
 from flask import Flask, request
 from flask_restful import Resource, Api
+from flask_cors import CORS, cross_origin
 from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
+CORS(app)
 api = Api(app)
 
 class Juniors(Resource):
@@ -87,15 +89,10 @@ class Shortest_Path(Resource):
                         "employees UNION SELECT e.e_id, e.m_id, e.name, e.value_in_company "+
                         "FROM employees e INNER JOIN juniors s ON s.e_id = e.m_id ) "+
                         "SELECT * FROM juniors;")
-            #row = cur.fetchone()
-            # while row is not None:
-            #     G.add_node(row[0])
-            #     row=cur.fetchone()
-            #return cur.fetchall()
+
             row = cur.fetchone()
             while row is not None:
                 G.add_edge(row['e_id'],row['m_id'], value=row["value_in_company"])
-                #print(row['m_id'])
                 row = cur.fetchone()
  
             return nx.dijkstra_path(G ,node1, node2, "value")
@@ -106,8 +103,6 @@ class Shortest_Path(Resource):
         finally:
             if conn is not None:
                 conn.close()
-        #x=node1
-        #print(x)
 
 api.add_resource(Juniors, '/junior/<eid>')
 api.add_resource(Senior_Tree, '/seniortree/<eid>')
