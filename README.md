@@ -1,4 +1,4 @@
-# yolo
+# React - Python API 
 Trying python API, psycopg2, networkx, reactjs mobx, agGrid, postgresql database
 
 ## Running
